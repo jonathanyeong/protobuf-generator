@@ -5,26 +5,34 @@ require 'zlib'
 
 TAR_LONGLINK = '././@LongLink'  # http://dracoater.blogspot.com/2013/10/extracting-files-from-targz-with-ruby.html
 TAR_EXT = '.tar.gz'.freeze
-DEFAULT_ARCHIVE_URL = 'https://git.enova.com/brazil/schema_registry/archive/'.freeze
-DEFAULT_OUTPUT_DIR = 'app/messages/'.freeze
+DEFAULT_OUTPUT_DIR = 'lib/messages/'.freeze
 DEFAULT_DOWNLOAD_DIR = 'tmp/'
 
-namespace :_protobufs do
+namespace :ruby_proto_compiler do
   @unzipped_folder = ''
 
   desc 'Generate the Protos'
   task :generate, [:release, :github_archive_url, :output_dir] do |task, args|
-    abort("Error: No Release Specified\n\n" + help_text) if args[:release].nil?
-    args.with_defaults(:github_archive_url => DEFAULT_ARCHIVE_URL)
     args.with_defaults(:output_dir => DEFAULT_OUTPUT_DIR)
+    abort("Error: No Release Specified\n\n" + help_text) if args[:release].nil?
+    abort("Error: wrong output folder format #{args[:output_dir]} requires trailing /") unless args[:output_dir][-1].eql?('/')
+
 
     destination_path = DEFAULT_DOWNLOAD_DIR + args[:release] + TAR_EXT
     download_url = args[:github_archive_url] + args[:release] + TAR_EXT
 
     Dir.mkdir(DEFAULT_DOWNLOAD_DIR) unless Dir.exist?(DEFAULT_DOWNLOAD_DIR)
-    Rake::Task['enova_protobufs:download_tar'].invoke(destination_path, download_url)
-    Rake::Task['enova_protobufs:unzip'].invoke(destination_path, download_url)
-    Rake::Task['enova_protobufs:compile_protos'].invoke(args[:output_dir])
+    Rake::Task['ruby_proto_compiler:download_tar'].invoke(destination_path, download_url)
+    Rake::Task['ruby_proto_compiler:unzip'].invoke(destination_path, download_url)
+    Rake::Task['ruby_proto_compiler:compile_protos'].invoke(args[:output_dir])
+    Rake::Task['ruby_proto_compiler:include_protos'].invoke(args[:output_dir]) if defined?(Rails)
+  end
+
+  task :include_protos, [:output_dir] do |t, args|
+    puts "Adding initializers/protobufs.rb file"
+    File.open(Rails.root.join('config/initializers/protobufs.rb'), 'w') do |f|
+      f.puts('Dir["#{Rails.application.config.root}/' + "#{args[:output_dir]}" + '*/*.rb"].each { |file| require file }')
+    end
   end
 
   task :download_tar, [:dest_folder, :download_url] do |t, args|
@@ -82,8 +90,7 @@ namespace :_protobufs do
 
   def help_text
     <<~HEREDOC
-      Usage: rake enova_protobufs:generate[release, github_archive_url, output_dir]
-      github_archive_url (default) -> #{DEFAULT_ARCHIVE_URL}
+      Usage: rake ruby_proto_compiler:generate[release, github_archive_url, output_dir]
       output_dir (default) -> #{DEFAULT_OUTPUT_DIR}
     HEREDOC
   end

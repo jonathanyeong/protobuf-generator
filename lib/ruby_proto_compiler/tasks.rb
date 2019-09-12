@@ -1,0 +1,1 @@
+load 'ruby_proto_compiler/tasks/gen_protos.rake'
