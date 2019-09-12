@@ -1,18 +1,18 @@
-require_relative 'lib/protobuf_generator/version'
+require_relative 'lib/ruby_proto_compiler/version'
 
 Gem::Specification.new do |s|
-  s.name        = 'protobuf_generator'
-  s.version     = ProtobufGenerator::VERSION
+  s.name        = 'ruby_proto_compiler'
+  s.version     = RubyProtoCompiler::VERSION
   s.date        = '2019-09-09'
   s.summary     = 'A protobuf generator for your protobufs'
   s.description = 'Exposes a rake task that easily imports protobufs into your Rails apps'
   s.authors     = ["Jonathan Yeong"]
   s.email       = 'hello@jonathanyeong.com'
-  s.files       = ["lib/protobuf_generator.rb"]
+  s.files       = `git ls-files`.split("\n")
 
   s.require_paths = ['lib']
 
   s.required_ruby_version = '~> 2.6'
 
-  s.add_dependency 'rake'
+  s.add_runtime_dependency 'rake'
 end
